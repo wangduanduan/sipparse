@@ -1,0 +1,3 @@
+testCases=GetHeaderValue|ParseCseq
+test:
+	go test -v -run="$(testCases)" ./...
