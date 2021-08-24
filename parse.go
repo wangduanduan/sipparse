@@ -29,6 +29,7 @@ type SIP struct {
 	Title           string // Method or Status
 	IsRequest       bool
 	CallID          string
+	RequestURL      string
 	RequestUsername string
 	RequestDomain   string
 	ToUsername      string
@@ -47,6 +48,9 @@ type SIP struct {
 	raw             *string // raw sip message
 }
 
+// 	Request 	: INVITE bob@example.com SIP/2.0
+// 	Response 	: SIP/2.0 200 OK
+// 	Response	: SIP/2.0 501 Not Implemented
 func (p *SIP) ParseFirstLine() {
 	if *p.raw == EmptyStr {
 		return
@@ -64,16 +68,56 @@ func (p *SIP) ParseFirstLine() {
 	}
 	if strings.HasPrefix(firstLineMeta[0], "SIP") {
 		p.IsRequest = false
+		p.Title = firstLineMeta[1]
 		return
 	}
 	p.IsRequest = true
-	p.ParseRequestURL(firstLineMeta[1])
+	p.Title = firstLineMeta[0]
+	p.RequestURL = firstLineMeta[1]
 }
-func (p *SIP) ParseFrom()               {}
-func (p *SIP) ParseRequestURL(u string) {}
-func (p *SIP) ParseTo()                 {}
-func (p *SIP) ParseUserAgent()          {}
-func (p *SIP) ParseSIPURL()             {}
+
+func (p *SIP) ParseFrom() {}
+func (p *SIP) ParseRequestURL() {
+	if p.RequestURL == "" {
+		return
+	}
+
+}
+func (p *SIP) ParseTo()        {}
+func (p *SIP) ParseUserAgent() {}
+
+func ParseSIPURL(s string) (string, string) {
+	if s == "" {
+		return "", ""
+	}
+
+	newURL := s
+
+	if strings.Contains(s, "<") {
+		start := strings.Index(s, "<")
+		end := strings.Index(s, ">")
+		if start > end {
+			return "", ""
+		}
+		newURL = s[start:end]
+	}
+
+	a := strings.Index(newURL, ":")
+	b := strings.Index(newURL, "@")
+	c := strings.Index(newURL, ";")
+
+	if a == -1 || b == -1 || a > b {
+		return "", ""
+	}
+
+	if c == -1 {
+		c = len(newURL)
+	}
+
+	user := newURL[a+1 : b]
+	domain := newURL[b+1 : c]
+	return user, domain
+}
 
 func (p *SIP) ParseCseq() {
 	cseqValue := p.GetHeaderValue(HeaderCSeq)
