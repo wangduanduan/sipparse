@@ -6,6 +6,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const inviteMsg = "INVITE sip:bob@biloxi.example.com SIP/2.0\r\n" +
+	"Via: SIP/2.0/TCP client.atlanta.example.com:5060;branch=z9hG4bK74b43\r\n" +
+	"Max-Forwards: 70\r\n" +
+	"Route: <sip:ss1.atlanta.example.com;lr>\r\n" +
+	"From: Alice <sip:alice@atlanta.example.com>;tag=9fxced76sl\r\n" +
+	"To: Bob <sip:bob@biloxi.example.com>\r\n" +
+	"Call-ID: 3848276298220188511@atlanta.example.com\r\n" +
+	"CSeq: 1 INVITE\r\n" +
+	"Contact: <sip:alice@client.atlanta.example.com;transport=tcp>\r\n" +
+	"Content-Type: application/sdp\r\n" +
+	"Content-Length: 151\r\n" +
+	"\r\n" +
+	"\r\n" +
+	"v=0\r\n" +
+	"o=alice 2890844526 2890844526 IN IP4 client.atlanta.example.com\r\n" +
+	"s=-\r\n" +
+	"c=IN IP4 192.0.2.101\r\n" +
+	"t=0 0\r\n" +
+	"m=audio 49172 RTP/AVP 0\r\n" +
+	"a=rtpmap:0 PCMU/8000\r\n"
+
 func TestParseCSeq(t *testing.T) {
 	successCases := []struct {
 		in                 string
@@ -16,6 +37,11 @@ func TestParseCSeq(t *testing.T) {
 			in:                 "CSeq: 123 INVITE\r\n",
 			expectedCseqNumber: "123",
 			expectedCseqMethod: "INVITE",
+		},
+		{
+			in:                 "",
+			expectedCseqNumber: "",
+			expectedCseqMethod: "",
 		},
 		{
 			in:                 "CSeq: 123 INVITE\r\n",
@@ -34,7 +60,8 @@ func TestParseCSeq(t *testing.T) {
 	}
 }
 
-func TestPraseFirstLine(t *testing.T) {
+func TestGetHeaderValue(t *testing.T) {
+
 	successCases := []struct {
 		in            string
 		header        string
@@ -62,6 +89,16 @@ func TestPraseFirstLine(t *testing.T) {
 		},
 		{
 			in:            "User-Agent: wdd\r\nCall-ID: 1234\r\nCSeq: 123 INVITE\r\n",
+			header:        "Call-ID",
+			expectedValue: "1234",
+		},
+		{
+			in:            "User-Agent: wdd\r\nCall-ID: 1234\r\nCSeq: 123 INVITE\r\n",
+			header:        "CSeq",
+			expectedValue: "123 INVITE",
+		},
+		{
+			in:            "User-Agent: wdd\r\nCall-ID: 1234\r\nCSeq: 123 INVITE\r\n",
 			header:        "User-Agent",
 			expectedValue: "wdd",
 		},
@@ -69,6 +106,56 @@ func TestPraseFirstLine(t *testing.T) {
 			in:            "",
 			header:        "User-Agent",
 			expectedValue: "",
+		},
+		{
+			in:            inviteMsg,
+			header:        "Via",
+			expectedValue: "SIP/2.0/TCP client.atlanta.example.com:5060;branch=z9hG4bK74b43",
+		},
+		{
+			in:            inviteMsg,
+			header:        "Max-Forwards",
+			expectedValue: "70",
+		},
+		{
+			in:            inviteMsg,
+			header:        "Route",
+			expectedValue: "<sip:ss1.atlanta.example.com;lr>",
+		},
+		{
+			in:            inviteMsg,
+			header:        "From",
+			expectedValue: "Alice <sip:alice@atlanta.example.com>;tag=9fxced76sl",
+		},
+		{
+			in:            inviteMsg,
+			header:        "To",
+			expectedValue: "Bob <sip:bob@biloxi.example.com>",
+		},
+		{
+			in:            inviteMsg,
+			header:        "Call-ID",
+			expectedValue: "3848276298220188511@atlanta.example.com",
+		},
+		{
+			in:            inviteMsg,
+			header:        "CSeq",
+			expectedValue: "1 INVITE",
+		},
+		{
+			in:            inviteMsg,
+			header:        "Contact",
+			expectedValue: "<sip:alice@client.atlanta.example.com;transport=tcp>",
+		},
+		{
+			in:            inviteMsg,
+			header:        "Content-Type",
+			expectedValue: "application/sdp",
+		},
+		{
+			in:            inviteMsg,
+			header:        "Content-Length",
+			expectedValue: "151",
 		},
 	}
 
@@ -80,55 +167,7 @@ func TestPraseFirstLine(t *testing.T) {
 	}
 }
 
-func TestGetHeaderValue(t *testing.T) {
-	successCases := []struct {
-		in            string
-		header        string
-		expectedValue string
-	}{
-		{
-			in:            "CSeq: 123 INVITE\r\n",
-			header:        "CSeq",
-			expectedValue: "123 INVITE",
-		},
-		{
-			in:            "Call-ID: 1234\r\nCSeq: 123 INVITE\r\n",
-			header:        "Call-ID",
-			expectedValue: "1234",
-		},
-		{
-			in:            "Call-ID: 1234\r\nCSeq: 123 INVITE\r\n",
-			header:        "Call-ID\r\n",
-			expectedValue: "",
-		},
-		{
-			in:            "User-Agent: wdd\r\nCall-ID: 1234\r\nCSeq: 123 INVITE\r\n",
-			header:        "",
-			expectedValue: "",
-		},
-		{
-			in:            "User-Agent: wdd\r\nCall-ID: 1234\r\nCSeq: 123 INVITE\r\n",
-			header:        "User-Agent",
-			expectedValue: "wdd",
-		},
-		{
-			in:            "User-Agent: wdd\r\nCall-ID: 1234\r\nCSeq: 123 INVITE\r\n",
-			header:        "Call-ID",
-			expectedValue: "1234",
-		},
-		{
-			in:            "",
-			header:        "User-Agent",
-			expectedValue: "",
-		},
-	}
-
-	for _, item := range successCases {
-		sip := SIP{
-			raw: &item.in,
-		}
-		assert.Equal(t, item.expectedValue, sip.GetHeaderValue(item.header))
-	}
+func TestParseFirstLine(t *testing.T) {
 }
 
 func TestParseSIPURL(t *testing.T) {

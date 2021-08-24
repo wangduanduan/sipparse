@@ -155,7 +155,11 @@ func (p *SIP) GetHeaderValue(header string) (v string) {
 		return EmptyStr
 	}
 
-	return strings.TrimSpace((*p.raw)[startIndex+len(header)+1 : endIndex])
+	if len(header)+1 > endIndex {
+		return EmptyStr
+	}
+
+	return strings.TrimSpace(newStr[len(header)+1 : endIndex])
 }
 
 func init() {
