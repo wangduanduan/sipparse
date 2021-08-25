@@ -48,6 +48,11 @@ func TestParseCSeq(t *testing.T) {
 			expectedCseqNumber: "123",
 			expectedCseqMethod: "INVITE",
 		},
+		{
+			in:                 "CSeq: INVITE\r\n",
+			expectedCseqNumber: "",
+			expectedCseqMethod: "",
+		},
 	}
 
 	for _, item := range successCases {
@@ -168,6 +173,26 @@ func TestGetHeaderValue(t *testing.T) {
 }
 
 func TestParseFirstLine(t *testing.T) {
+	successCases := []struct {
+		msg        string
+		IsRequest  bool
+		Title      string
+		RequestURL string
+	}{
+		{"REGISTER sip:registrar.biloxi.com SIP/2.0\r\nVia: SIP/2.0/UDP bobspc.biloxi.com:5060;branch=z9hG4bKnashds7", true, "REGISTER", "sip:registrar.biloxi.com"},
+		{"SIP/2.0 200 OK\r\nVia: SIP/2.0/UDP bobspc.biloxi.com:5060;branch=z9hG4bKnashds7", false, "200", ""},
+		{"", false, "", ""},
+	}
+
+	for _, c := range successCases {
+		sip := SIP{
+			raw: &c.msg,
+		}
+		sip.ParseFirstLine()
+		assert.Equal(t, c.IsRequest, sip.IsRequest)
+		assert.Equal(t, c.Title, sip.Title)
+		assert.Equal(t, c.RequestURL, sip.RequestURL)
+	}
 }
 
 func TestParseSIPURL(t *testing.T) {
@@ -182,11 +207,40 @@ func TestParseSIPURL(t *testing.T) {
 		{"sip:800004@001.com", "800004", "001.com"},
 		{"Carol <sip:carol@chicago.com>", "carol", "chicago.com"},
 		{"sip:+12125551212@phone2net.com;tag=887s", "+12125551212", "phone2net.com"},
+		{"", "", ""},
+		{">sdfsdf<<", "", ""},
+		{"+12125551212@phone2net.com;tag=887s", "", ""},
+		{"+12125551212phone2net.com;tag=887s", "", ""},
+		{"sip:net.com;tag=887s", "", "net.com"},
+		{"sip:net.com", "", "net.com"},
 	}
 
 	for _, c := range successCases {
 		user, domain := ParseSIPURL(c.msg)
 		assert.Equal(t, c.user, user)
 		assert.Equal(t, c.domain, domain)
+	}
+}
+
+func test(t *testing.T) {
+	successCases := []struct {
+		msg        string
+		IsRequest  bool
+		Title      string
+		RequestURL string
+	}{
+		{"REGISTER sip:registrar.biloxi.com SIP/2.0\r\nVia: SIP/2.0/UDP bobspc.biloxi.com:5060;branch=z9hG4bKnashds7", true, "REGISTER", "sip:registrar.biloxi.com"},
+		{"SIP/2.0 200 OK\r\nVia: SIP/2.0/UDP bobspc.biloxi.com:5060;branch=z9hG4bKnashds7", false, "200", ""},
+		{"", false, "", ""},
+	}
+
+	for _, c := range successCases {
+		sip := SIP{
+			raw: &c.msg,
+		}
+		sip.ParseFirstLine()
+		assert.Equal(t, c.IsRequest, sip.IsRequest)
+		assert.Equal(t, c.Title, sip.Title)
+		assert.Equal(t, c.RequestURL, sip.RequestURL)
 	}
 }

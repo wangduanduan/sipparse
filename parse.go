@@ -81,11 +81,18 @@ func (p *SIP) ParseRequestURL() {
 	if p.RequestURL == "" {
 		return
 	}
-
+	user, domain := ParseSIPURL(p.RequestURL)
+	p.RequestDomain = domain
+	p.RequestUsername = user
 }
 func (p *SIP) ParseTo()        {}
 func (p *SIP) ParseUserAgent() {}
 
+// "Bob" <sips:bob@biloxi.com> ;tag=a48s
+// sip:+12125551212@phone2net.com;tag=887s
+// Anonymous <sip:c8oqz84zk7z@privacy.org>;tag=hyh8
+// Carol <sip:carol@chicago.com>
+// sip:carol@chicago.com
 func ParseSIPURL(s string) (string, string) {
 	if s == "" {
 		return "", ""
@@ -106,8 +113,17 @@ func ParseSIPURL(s string) (string, string) {
 	b := strings.Index(newURL, "@")
 	c := strings.Index(newURL, ";")
 
-	if a == -1 || b == -1 || a > b {
+	if a == -1 {
 		return "", ""
+	}
+
+	if b == -1 && b < len(newURL) {
+		if c == -1 {
+			return "", newURL[a+1:]
+		}
+		if c > b {
+			return "", newURL[a+1 : c]
+		}
 	}
 
 	if c == -1 {
